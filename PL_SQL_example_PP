@@ -1,0 +1,126 @@
+--code is just example with manually modified names, columns and conditions due to IP reasons!
+
+DECLARE
+
+CURSOR c IS
+ 
+SELECT <column list>,sf.rowid AS sf_rowid
+FROM table sa,table2 sf,table3 pp,table4 so,table5 f ,table6 ap
+WHERE <joins> and AAA ='&S_no'
+AND conditions @ outer joins;
+
+cursor c2 is select <col list> from table7 bd,table8 s where 
+<joins and conditions>
+
+d1 DATE;ans NUMBER;ap VARCHAR(10);fut_ind CHAR(1);OA_ID VARCHAR2(10);
+B NUMBER(9);BC NUMBER(2);
+
+BEGIN
+ 
+BAN:=0;bc:=0;
+
+FOR cc IN c LOOP
+d1:=NULL;ap:=NULL;
+dbms_output.put_line(cc.<col> ||'/'|| cc.<col2>||'/'||cc.effective_date);
+ 
+SELECT COUNT(1) INTO ans FROM <table9>@<db_link> ti
+WHERE ti.ap_id IN (SELECT ap_id FROM <table10>@<db_link> tpp WHERE tpp.billing_id=to_char(cc.o_i))
+START WITH ti.s_id='&Subscriber_No' AND ti.main_ind=1
+AND ti.st='AS' AND ti.stat IN ('AC','SU') AND SYSDATE BETWEEN ti.<dat1> AND ti.<dat2>
+CONNECT BY PRIOR ti.id=ti.id_dominant AND ti.st='AS' AND ti.stat IN ('AC','SU')
+AND SYSDATE BETWEEN ti.<dat1> AND ti.<dat2>;
+ 
+dbms_output.put_line(ans);
+ 
+IF ans=0 THEN -- Not active billing_id 
+fut_ind:=NULL;OA_ID:=NULL;
+IF cc.e_date<SYSDATE THEN 
+SELECT DISTINCT ap_id INTO ap FROM <table9>@<db_link> tpp WHERE tpp.billing_id=to_char(cc.o_i);
+dbms_output.put_line('AP='||to_char(ap)); 
+
+WHILE ap IS NOT NULL AND d1 IS NULL LOOP
+ 
+BEGIN
+
+SELECT MAX(TRUNC(<dat>)),max(ti.oa_id) INTO d1,OA_ID FROM <table10>@<db_link> ti WHERE ap_id=ap AND
+ti.state='AS' AND ti.status='CE' AND ti.end_date>SYSDATE;
+
+EXCEPTION
+WHEN NO_DATA_FOUND THEN d1:=NULL;OA_ID:=NULL;
+ 
+END;
+ 
+BEGIN 
+IF d1 IS NULL THEN 
+SELECT col INTO ap FROM <table10>@<db_lionk> ti WHERE ap_id=ap AND
+ti.st='AS' AND ti.v_id=(SELECT MAX(to_number(ti2.v_id)) FROM t<table10>@<db_lionk>  ti2 
+WHERE ti2.ap_id=ap AND ti2.st='AS') AND ti.main_ind<>1;
+END IF; --d1 is null 
+EXCEPTION
+WHEN NO_DATA_FOUND THEN d1:=cc.effective_date;ap:=NULL; --WA for CA/missing in <system>!!!!!
+END;
+dbms_output.put_line(to_char(d1)||'-'||to_char(ap)); 
+dbms_output.put_line(nvl(OA_ID,'OA=NULL'));
+ 
+BEGIN
+SELECT (CASE WHEN TRUNC(ta.e_date)>TRUNC(ta.cr_date) THEN 1 ELSE NULL END) INTO fut_ind
+FROM <table12>@<db_lionk>  ta WHERE ta.o_u_id=OA_ID;
+EXCEPTION
+WHEN NO_DATA_FOUND THEN fut_ind:=NULL;
+END;
+dbms_output.put_line(nvl(fut_ind,'Fut NULL')); 
+ 
+END LOOP; -- while
+ 
+ELSE d1:=cc.e_date; --If cc.e_date<SYSDATE ... 
+ 
+END IF;--If cc.e_date<SYSDATE
+dbms_output.put_line(d1);dbms_output.put_line(nvl(fut_ind,'Fut is NULL'));
+
+UPDATE <table1> sa SET sa.e_date=(CASE WHEN sa.ee_date>trunc(d1) THEN sa.ee_date ELSE trunc(d1) END),
+sa.e_i_date=(CASE WHEN sa.e_i_date>trunc(d1) THEN sa.e_i_date ELSE trunc(d1) END),
+sa.sys_u_date=SYSDATE,
+sa.f_ind=(CASE WHEN sa.e_date>=trunc(d1) THEN '1' ELSE fut_ind END),--fut_ind
+sa.app='CSPAT',sa.dl='EX1'
+WHERE sa.rowid=cc.sa_rowid;
+
+dbms_output.put_line(d1||'UPDATED');dbms_output.put_line(nvl(fut_ind,'2- Fut is NULL'));
+
+UPDATE <table2> sf SET sf.ftr_date=(CASE WHEN sf.ftr_e_date>trunc(d1) THEN sf.ftr_date ELSE trunc(d1) END), 
+sf.ftr_i_date=(CASE WHEN sf.ftr_e_i_date>trunc(d1) THEN sf.ftr_e_i_date ELSE trunc(d1) END),
+sf.s_date=SYSDATE,sf.app='Fix',sf.dl_service_code='EX1',sf.rsn_code='C'
+WHERE sf.rowid=cc.sf_rowid;--check CE with future dates?!
+
+dbms_output.put_line(d1||'UPDATED');dbms_output.put_line(nvl(fut_ind,'3- Fut is NULL'));
+
+UPDATE <table3> ap SET ap.e_date=(CASE WHEN ap.ef_date>trunc(d1) THEN ap.ef_date ELSE trunc(d1) END),
+ap.ei_date=(CASE WHEN ap.ei_date>trunc(d1) THEN ap.ei_date ELSE trunc(d1) END),
+ap.s_date=SYSDATE,ap.app='AppCode',ap.s_code='EX1' WHERE ap.rowid=cc.ap_rowid;
+-------------CUG MEMBER---------------
+UPDATE <table13> cm SET cm.e_date=(CASE WHEN cm.e_date>trunc(d1) THEN cm.e_date ELSE trunc(d1) END),
+cm.s_date=SYSDATE, cm.app='AppCode',cm.d_code='EX1'
+WHERE cm.col=cc.col1 AND cm.clo2=cc.col2 AND cm.col3=cc.col3;   -- From Cursor C col list
+  
+dbms_output.put_line('Rows updated in CM:'||SQL%ROWCOUNT);
+
+ 
+END IF; --IF ans=0 (inactive billing ID)
+
+IF bc = 0 THEN
+  BEGIN
+  SELECT nvl(cc.b,0),nvl(cc1.cc,0) INTO c,bc FROM <table1> sa,<table15> ba,table16> cc1, bill b WHERE  sa.rowid=cc.sa_rowid  AND sa.ban=ba.ban AND
+    cc1.cc=ba.bc AND cc1.e_date=(SELECT MAX(cc2.e_date) FROM <table16> cc2 WHERE cc2.cc=cc1.cc) AND
+    sa.e_date<cc1.date AND sa.b=b.b AND b.cc=ba.bc AND b.cr_year=cc1.cr_year AND b.cr_m=cc1.cr_m;
+  EXCEPTION 
+    WHEN NO_DATA_FOUND THEN BEGIN ban:=0;bc:=0; END;
+    WHEN TOO_MANY_ROWS THEN BEGIN bc:=0;dbms_output.put_line('Check manually for rebill/RR B*:'||b||'SA_ROWID='||cc.sa_rowid); END;
+  END;   
+END IF; --BC is NULL
+
+END LOOP;
+
+--Similar code for corsor C2
+--
+
+  dbms_output.put_line('Please rebill B: '||b||' CC: '||BC);
+END;
